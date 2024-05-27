@@ -27,7 +27,7 @@ const userSchema = mongoose.Schema(
             required: [true, 'Enter a Password.'],
             minLength: [5, 'Password should be at least 5 characters.'],
         },
-        confirm_password: {
+        confirmPassword: {
             type: String,
             required: [true, 'Retype your password.'],
             validate: {
@@ -37,22 +37,27 @@ const userSchema = mongoose.Schema(
                 message: "Passwords don't match. ",
             },
         },
-        user_type: {
+        userType: {
             type: String,
             required: [true, 'Enter a user type'],
-            enum: ['customer, staff, admin'],
-            default: 'customer',
+            enum: ['customer', 'staff', 'admin'],
         },
         status: {
             type: String,
-            enum: ['Pending', 'Active'],
-            default: 'Pending',
+            enum: ['pending', 'active'],
+            default: 'pending',
         },
-        confirmation_code: {
+        confirmationCode: {
             type: String,
             unique: true,
             sparse: true,
         },
+        resetPassToken: {
+            type: String,
+            unique: true,
+            sparse: true,
+        },
+        resetPassExpire: Date,
     },
     {
         timestamps: true,

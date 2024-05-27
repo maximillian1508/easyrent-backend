@@ -6,6 +6,8 @@ const helmet = require('helmet');
 const session = require('express-session');
 const dbConnection = require('./config/databaseSetup');
 const authRoute = require('./routes/authRoute');
+const userRoute = require('./routes/userRoute');
+const errorHandler = require('./middleware/errorHandler');
 
 require('dotenv').config({ path: './.env.development' });
 
@@ -27,6 +29,9 @@ app.use(session({
 }));
 
 app.use('/auth', authRoute);
+app.use('/users', userRoute);
+
+app.use(errorHandler);
 
 app.get('/', (req, res) => {
     res.json('EasyRent API!');

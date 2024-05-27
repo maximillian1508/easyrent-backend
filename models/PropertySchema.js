@@ -8,7 +8,7 @@ const PropertySchema = mongoose.Schema(
         },
         type: {
             type: String,
-            enum: ['House Unit', 'Apartment Unit', 'Room'],
+            enum: ['Unit Rental', 'Room Rental'],
             required: [true, 'Please enter a property type'],
         },
         address: {
@@ -21,7 +21,6 @@ const PropertySchema = mongoose.Schema(
         },
         price: {
             type: Number,
-            required: [true, 'Please enter a property price'],
         },
         description: {
             type: String,

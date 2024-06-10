@@ -1,3 +1,5 @@
+require('dotenv').config({ path: './.env.development' });
+
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
@@ -8,8 +10,6 @@ const dbConnection = require('./config/databaseSetup');
 const authRoute = require('./routes/authRoute');
 const userRoute = require('./routes/userRoute');
 const errorHandler = require('./middleware/errorHandler');
-
-require('dotenv').config({ path: './.env.development' });
 
 const port = process.env.PORT;
 const app = express();

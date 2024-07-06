@@ -9,11 +9,6 @@
   },
   "author": "",
   "license": "ISC",
-  "devDependencies": {
-    "eslint": "^8.57.0",
-    "eslint-config-airbnb-base": "^15.0.0",
-    "eslint-plugin-import": "^2.29.1"
-  },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "connect-mongo": "^5.1.0",
@@ -27,5 +22,8 @@
     "mongoose": "^8.3.4",
     "nodemailer": "^6.9.13",
     "nodemon": "^3.1.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.8.3"
   }
 }

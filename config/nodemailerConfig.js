@@ -1,23 +1,22 @@
-const nodemailer = require('nodemailer');
+const nodemailer = require("nodemailer");
 
 const user = process.env.EMAIL_USER;
 const pass = process.env.EMAIL_PASS; // Uses google's app specific password
 
 const transport = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    auth: {
-        user,
-        pass,
-    },
+	host: "smtp.gmail.com",
+	auth: {
+		user,
+		pass,
+	},
 });
 
 const sendConfirmationEmail = (firstname, email, confirmationCode) => {
-    console.log(`${user} ${pass}`);
-    transport.sendMail({
-        from: { name: 'EasyRent', address: user },
-        to: email,
-        subject: '[EasyRent] Account Confirmation',
-        html: `
+	transport.sendMail({
+		from: { name: "EasyRent", address: user },
+		to: email,
+		subject: "[EasyRent] Account Confirmation",
+		html: `
         <table border="0" cellpadding="0" cellspacing="0" style="border-collapse:separate;width:100%;">
           <tbody>
             <tr>
@@ -39,7 +38,7 @@ const sendConfirmationEmail = (firstname, email, confirmationCode) => {
           </tbody>
         </table>
       `,
-    });
+	});
 };
 
 module.exports = { sendConfirmationEmail };

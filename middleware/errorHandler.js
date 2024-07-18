@@ -1,42 +1,63 @@
-const handleDuplicateKeyError = (err, res) => {
-	const field = Object.keys(err.keyValue);
-	const newArr = [];
+//const { logEvents } = require("./logger");
 
-	const code = 409;
-	const error = `An account with that ${field} already exists.`;
-	newArr.push({ [field]: error });
+const handleValidationError = (err) => {
+	const errors = [];
+	const errorFields = {};
 
-	err = newArr;
-	res.status(code).send(err);
+	for (const key of Object.keys(err.errors)) {
+		const error = err.errors[key];
+		const errorObj = { field: key, message: error.message };
+		errors.push(errorObj);
+		errorFields[key] = error.message;
+	}
+
+	return { errors, errorFields };
 };
 
-const handleValidationError = (err, res) => {
-	const fields = Object.keys(err.errors);
-	const newErr = [];
-
-	for (let i = 0; i < fields.length; i++) {
-		const property = Object.values(err.errors[fields[i]]);
-		const field = property[0].path;
-		const { message } = property[0];
-		newErr.push({ [field]: message });
-	}
-	err = newErr;
-	res.status(400).json(err);
+const handleDuplicateKeyError = (err) => {
+	const field = Object.keys(err.keyValue)[0];
+	const error = `An account with that ${field} already exists.`;
+	return {
+		errors: [{ field, message: error }],
+		errorFields: { [field]: error },
+	};
 };
 
 const errorHandler = (err, req, res, next) => {
+	/*
+	logEvents(
+		`${err.name}: ${err.message}\t${req.method}\t${req.url}\t${req.headers.origin}`,
+		"errLog.log",
+	);*/
+	console.log(err.stack);
+
+	let status = res.statusCode ? res.statusCode : 500; // server error
+	let errorResponse = { message: err.message, isError: true };
+
 	try {
 		if (err.name === "ValidationError") {
-			err = handleValidationError(err, res);
-			return next(err);
+			status = 400;
+			const validationErrors = handleValidationError(err);
+			errorResponse = {
+				...errorResponse,
+				message: "Validation failed",
+				...validationErrors,
+			};
+		} else if (err.code && err.code === 11000) {
+			status = 409;
+			const duplicateErrors = handleDuplicateKeyError(err);
+			errorResponse = {
+				...errorResponse,
+				message: "Duplicate key error",
+				...duplicateErrors,
+			};
 		}
-		if (err.code && err.code === 11000) {
-			err = handleDuplicateKeyError(err, res);
-			return next(err);
-		}
-	} catch (err) {
-		return res.status(500).send("An unknown error occurred.");
+	} catch (error) {
+		status = 500;
+		errorResponse.message = "An unknown error occurred.";
 	}
+
+	res.status(status).json(errorResponse);
 };
 
 module.exports = errorHandler;

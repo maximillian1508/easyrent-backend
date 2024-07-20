@@ -1,17 +1,18 @@
 const express = require("express");
 const userController = require("../controllers/userController");
+const verifyJWT = require("../middleware/verifyJWT");
 
 const router = express.Router();
 
 router
 	.route("/")
-	.get(userController.getAllUsers)
+	.get(verifyJWT, userController.getAllUsers)
 	.post(userController.createUser);
 
 router
 	.route("/:id")
-	.get(userController.getUserById)
-	.patch(userController.updateUser)
-	.delete(userController.deleteUser);
+	.get(verifyJWT, userController.getUserById)
+	.patch(verifyJWT, userController.updateUser)
+	.delete(verifyJWT, userController.deleteUser);
 
 module.exports = router;

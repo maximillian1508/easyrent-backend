@@ -67,7 +67,26 @@ const createProperty = async (req, res, next) => {
 
 const getAllProperties = async (req, res) => {
 	try {
-		const properties = await Property.find();
+		const properties = await Property.aggregate([
+			{
+				$addFields: {
+					priceRange: {
+						$cond: {
+							if: { $eq: ["$type", "Room Rental"] },
+							// biome-ignore lint/suspicious/noThenProperty: <explanation>
+							then: {
+								$concat: [
+									{ $toString: { $min: "$rooms.price" } },
+									" - ",
+									{ $toString: { $max: "$rooms.price" } },
+								],
+							},
+							else: null,
+						},
+					},
+				},
+			},
+		]);
 		res.status(200).json({ properties });
 	} catch (err) {
 		res.status(500).json({ error: err.message });
@@ -76,12 +95,6 @@ const getAllProperties = async (req, res) => {
 
 const getFeaturedProperties = async (req, res) => {
 	try {
-		console.log("getting properties");
-		/*
-		const properties = await Property.find({
-			isAvailable: true,
-		}).limit(9);
-		*/
 		const properties = await Property.aggregate([
 			{ $match: { isAvailable: true } },
 			{ $limit: 9 },
@@ -90,6 +103,7 @@ const getFeaturedProperties = async (req, res) => {
 					priceRange: {
 						$cond: {
 							if: { $eq: ["$type", "Room Rental"] },
+							// biome-ignore lint/suspicious/noThenProperty: <explanation>
 							then: {
 								$concat: [
 									{ $toString: { $min: "$rooms.price" } },
@@ -110,9 +124,106 @@ const getFeaturedProperties = async (req, res) => {
 	}
 };
 
-const updateProperty = async (req, res, next) => {};
+const updateProperty = async (req, res, next) => {
+	console.log(req.params);
+	const { id } = req.params;
+	const {
+		name,
+		type,
+		address,
+		description,
+		images,
+		rooms,
+		price,
+		depositAmount,
+	} = req.body;
 
-const deleteProperty = async (req, res) => {};
+	try {
+		// Handle image uploads
+		let imageUrls = [];
+		if (req.files && req.files.length > 0) {
+			const uploadPromises = req.files.map((file) =>
+				cloudinary.uploader.upload(file.path, { folder: "property_images" }),
+			);
+			const uploadResults = await Promise.all(uploadPromises);
+			imageUrls = uploadResults.map((result) => result.secure_url);
+		}
+
+		const property = await Property.findOne({ _id: id });
+
+		property.name = name;
+		property.type = type;
+		property.address = address;
+		property.description = description;
+
+		// Handle the images
+		let existingImages = [];
+		if (images) {
+			// If images is a string, split it into an array; otherwise, assume it's already an array
+			existingImages = typeof images === "string" ? images.split(",") : images;
+		}
+
+		// Combine existing images with new uploaded images
+		if (imageUrls.length === 0) {
+			property.images = existingImages;
+		} else {
+			property.images = [...existingImages, ...imageUrls];
+		}
+
+		if (type === "Unit Rental") {
+			property.price = price;
+			property.depositAmount = depositAmount;
+		} else if (type === "Room Rental") {
+			let parsedRooms;
+			try {
+				parsedRooms = JSON.parse(rooms);
+			} catch (error) {
+				return res.status(400).json({ message: "Invalid rooms data" });
+			}
+
+			if (!Array.isArray(parsedRooms) || parsedRooms.length === 0) {
+				return res
+					.status(400)
+					.json({ message: "At least one room is required for Room Rental" });
+			}
+
+			property.rooms = parsedRooms.map((room) => ({
+				name: room.name,
+				price: room.price,
+				depositAmount: room.depositAmount,
+				description: room.description,
+			}));
+		}
+
+		const updatedProperty = await property.save({ validateBeforeSave: true });
+		res
+			.status(200)
+			.json({ message: "Success", updatedProperty: updatedProperty });
+	} catch (error) {
+		next(error);
+	}
+};
+
+const deleteProperty = async (req, res) => {
+	const { id } = req.params;
+	if (!id) {
+		return res.status(400).json({ message: "Property ID Required" });
+	}
+
+	try {
+		// Does the user exist to delete?
+		const property = await Property.findById(id).exec();
+
+		if (!property) {
+			return res.status(400).json({ message: "Property not found" });
+		}
+
+		await property.deleteOne();
+		res.status(204).json({ message: "User deleted" });
+	} catch (err) {
+		res.status(500).json({ error: err.message });
+	}
+};
 
 const getPropertyById = async (req, res) => {};
 

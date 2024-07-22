@@ -20,7 +20,11 @@ router.route("/featured").get(propertyController.getFeaturedProperties);
 router
 	.route("/:id")
 	.get(propertyController.getPropertyById)
-	.patch(propertyController.updateProperty)
+	.patch(
+		verifyJWT,
+		upload.array("newImages", 5),
+		propertyController.updateProperty,
+	)
 	.delete(propertyController.deleteProperty);
 
 module.exports = router;

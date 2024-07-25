@@ -51,12 +51,11 @@ const userSchema = mongoose.Schema(
 			unique: true,
 			sparse: true,
 		},
-		resetPassToken: {
+		rentalType: {
 			type: String,
-			unique: true,
-			sparse: true,
+			enum: ["none", "unit", "room"],
+			default: "none",
 		},
-		resetPassExpire: Date,
 	},
 	{
 		timestamps: true,

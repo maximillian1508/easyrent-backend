@@ -23,7 +23,9 @@
     "mongoose": "^8.3.4",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.13",
-    "nodemon": "^3.1.0"
+    "nodemon": "^3.1.0",
+    "pdf-lib": "^1.17.1",
+    "stripe": "^16.4.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.8.3"

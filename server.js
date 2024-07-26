@@ -14,6 +14,7 @@ const errorHandler = require("./middleware/errorHandler");
 const applicationRoute = require("./routes/applicationRoute");
 const contractRoute = require("./routes/contractRoute");
 const transactionRoute = require("./routes/transactionRoute");
+const complaintRoute = require("./routes/complaintRoute");
 
 const port = process.env.PORT;
 const app = express();
@@ -44,6 +45,7 @@ app.use("/properties", propertyRoute);
 app.use("/applications", applicationRoute);
 app.use("/contracts", contractRoute);
 app.use("/transactions", transactionRoute);
+app.use("/complaints", complaintRoute);
 
 app.use(errorHandler);
 

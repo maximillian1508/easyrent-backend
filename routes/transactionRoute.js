@@ -26,5 +26,11 @@ router.get(
 	"/payment-intent-status/:paymentIntentId",
 	transactionController.getPaymentIntentStatus,
 );
+router.post(
+	"/process-payment",
+	verifyJWT,
+	transactionController.processPayment,
+);
+router.post("/test-cron", transactionController.testCron);
 
 module.exports = router;

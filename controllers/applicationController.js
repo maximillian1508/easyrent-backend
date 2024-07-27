@@ -1,8 +1,13 @@
 const Application = require("../models/ApplicationSchema");
 const Contract = require("../models/ContractSchema");
 const Transaction = require("../models/TransactionSchema");
+const Property = require("../models/PropertySchema");
 const cloudinary = require("../config/cloudinary");
 const { PDFDocument, StandardFonts } = require("pdf-lib");
+const {
+	sendAcceptanceEmail,
+	sendRejectionEmail,
+} = require("../config/nodemailerConfig");
 const fs = require("node:fs");
 
 const createApplication = async (req, res, next) => {
@@ -142,7 +147,12 @@ const acceptApplication = async (application) => {
 	let depositAmount;
 	let roomName;
 	if (isRoomRental) {
-		const room = populatedApplication.property.rooms[0];
+		const room = populatedApplication.property.rooms.find(
+			(room) => room._id.toString() === populatedApplication.roomId.toString(),
+		);
+		if (!room) {
+			throw new Error("Room not found in the property");
+		}
 		rentAmount = room.price;
 		depositAmount = room.depositAmount;
 		roomName = room.name;
@@ -204,11 +214,31 @@ const acceptApplication = async (application) => {
 	// Update the application with the contract reference
 	populatedApplication.contract = contract._id;
 	await populatedApplication.save();
+
+	sendAcceptanceEmail(
+		populatedApplication.user.firstname,
+		populatedApplication.user.email,
+		populatedApplication.property.name,
+		populatedApplication.startDate,
+		populatedApplication.endDate,
+		rentAmount,
+	);
 };
 
 const rejectApplication = async (application) => {
 	application.status = "Rejected";
 	await application.save();
+
+	const populatedApplication = await Application.findById(application._id)
+		.populate("user", "firstname email")
+		.populate("property", "name");
+
+	// Send rejection email
+	sendRejectionEmail(
+		populatedApplication.user.firstname,
+		populatedApplication.user.email,
+		populatedApplication.property.name,
+	);
 };
 
 async function createAndUploadRentalAgreement(data) {
@@ -347,6 +377,52 @@ const checkUserRentalStatus = async (req, res) => {
 	}
 };
 
+const checkActiveApplication = async (req, res) => {
+	try {
+		const { userId, propertyId, roomId } = req.query;
+
+		// First, fetch the property to determine its type
+		const property = await Property.findById(propertyId);
+		if (!property) {
+			return res.status(404).json({ message: "Property not found" });
+		}
+
+		let query;
+		if (property.type === "Unit Rental") {
+			// For unit rentals, check for any active application on the property
+			query = {
+				user: userId,
+				property: propertyId,
+				status: "Waiting for Response",
+			};
+		} else if (property.type === "Room Rental") {
+			// For room rentals, check for any active application on the specific room
+			if (!roomId) {
+				return res
+					.status(400)
+					.json({ message: "Room ID is required for room rentals" });
+			}
+			query = {
+				user: userId,
+				property: propertyId,
+				roomId: roomId,
+				status: "Waiting for Response",
+			};
+		} else {
+			return res.status(400).json({ message: "Invalid property type" });
+		}
+
+		const application = await Application.findOne(query);
+		const canApply = !application;
+
+		res.json({ canApply });
+	} catch (error) {
+		res
+			.status(500)
+			.json({ message: "Error checking user status", error: error.message });
+	}
+};
+
 module.exports = {
 	createApplication,
 	getAllApplications,
@@ -354,4 +430,5 @@ module.exports = {
 	updateApplication,
 	deleteApplication,
 	checkUserRentalStatus,
+	checkActiveApplication,
 };

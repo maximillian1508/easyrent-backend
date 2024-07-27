@@ -4,6 +4,10 @@ const Application = require("../models/ApplicationSchema");
 const Property = require("../models/PropertySchema");
 const User = require("../models/UserSchema");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const {
+	generateMonthlyPayments,
+	updateContractStatuses,
+} = require("../utils/cronJobs");
 
 const getAllTransactions = async (req, res) => {
 	try {
@@ -38,14 +42,19 @@ const getAllTransactions = async (req, res) => {
 };
 
 const createPaymentIntent = async (req, res) => {
-	const { amount, contractId } = req.body;
+	const { amount, contractId, transactionId } = req.body;
 	try {
 		// Find the existing transaction
-		let transaction = await Transaction.findOne({
-			contract: contractId,
-			type: "Deposit",
-			status: "Pending",
-		});
+		let transaction;
+		if (transactionId) {
+			transaction = await Transaction.findById(transactionId);
+		} else {
+			transaction = await Transaction.findOne({
+				contract: contractId,
+				type: "Deposit",
+				status: "Pending",
+			});
+		}
 
 		if (!transaction) {
 			return res.status(404).json({ error: "Transaction not found" });
@@ -62,11 +71,20 @@ const createPaymentIntent = async (req, res) => {
 		}
 
 		// Create a new payment intent
-		const paymentIntent = await stripe.paymentIntents.create({
-			amount: Math.round(amount * 100), // Convert to sen and ensure it's an integer
-			currency: "myr",
-			metadata: { contractId },
-		});
+		let paymentIntent;
+		if (transactionId) {
+			paymentIntent = await stripe.paymentIntents.create({
+				amount: Math.round(amount * 100), // Convert to sen and ensure it's an integer
+				currency: "myr",
+				metadata: { transactionId },
+			});
+		} else {
+			paymentIntent = await stripe.paymentIntents.create({
+				amount: Math.round(amount * 100), // Convert to sen and ensure it's an integer
+				currency: "myr",
+				metadata: { contractId },
+			});
+		}
 
 		// Update the transaction with the new payment intent ID
 		transaction = await Transaction.findByIdAndUpdate(
@@ -168,6 +186,42 @@ const processDeposit = async (req, res) => {
 	}
 };
 
+const processPayment = async (req, res) => {
+	const { paymentIntentId, transactionId } = req.body;
+	console.log(
+		`Processing payment for PaymentIntent: ${paymentIntentId}, Transaction: ${transactionId}`,
+	);
+
+	try {
+		console.log("Retrieving PaymentIntent from Stripe...");
+		const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+		console.log("PaymentIntent retrieved:", paymentIntent.status);
+
+		if (paymentIntent.status !== "succeeded") {
+			console.log("Payment not successful");
+			return res.status(400).json({ error: "Payment was not successful" });
+		}
+
+		console.log("Updating transaction in database...");
+		const updatedTransaction = await Transaction.findOneAndUpdate(
+			{ _id: transactionId },
+			{ status: "Paid", paymentDate: new Date() },
+			{ new: true },
+		);
+
+		if (!updatedTransaction) {
+			console.log("Transaction not found");
+			return res.status(404).json({ error: "Transaction not found" });
+		}
+
+		console.log("Transaction updated successfully");
+		res.status(200).json({ success: true, transaction: updatedTransaction });
+	} catch (err) {
+		console.error("Error in processPayment:", err);
+		return res.status(500).json({ error: err.message });
+	}
+};
+
 const getPaymentIntentStatus = async (req, res) => {
 	const { paymentIntentId } = req.params;
 	try {
@@ -184,6 +238,12 @@ const updateTransaction = async (req, res, next) => {};
 
 const createTransaction = async (req, res, next) => {};
 
+const testCron = async (req, res) => {
+	await generateMonthlyPayments();
+	await updateContractStatuses();
+	res.status(200).json({ message: "Cron job executed successfully" });
+};
+
 module.exports = {
 	getAllTransactions,
 	getTransactionById,
@@ -193,4 +253,6 @@ module.exports = {
 	processDeposit,
 	createPaymentIntent,
 	getPaymentIntentStatus,
+	processPayment,
+	testCron,
 };

@@ -87,7 +87,19 @@ const getAllProperties = async (req, res) => {
 				},
 			},
 		]);
-		res.status(200).json({ properties });
+
+		// Apply isFullyOccupied method to each property
+		const propertiesWithOccupancy = await Promise.all(
+			properties.map(async (property) => {
+				const propertyDoc = await Property.findById(property._id);
+				return {
+					...property,
+					isFullyOccupied: propertyDoc.isFullyOccupied(),
+				};
+			}),
+		);
+
+		res.status(200).json({ properties: propertiesWithOccupancy });
 	} catch (err) {
 		res.status(500).json({ error: err.message });
 	}

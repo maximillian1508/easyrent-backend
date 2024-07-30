@@ -25,7 +25,7 @@ const sendConfirmationEmail = (firstname, email, confirmationCode) => {
           <h2 style="font-weight:400;">Hello ${firstname}, </h2>
           <p>Thank you for creating an Easyrent account. Please confirm your email address by clicking the button below</p>
           <div style="text-align:center">
-		  	<a href=http://localhost/register-confirmation/${confirmationCode} style="box-sizing:border-box;text-decoration:none;background-color:#33415c;border:solid 1px #007bff;border-radius:4px;color:#ffffff;font-size:16px;font-weight:bold;margin:0;padding:9px 25px;display:inline-block;letter-spacing:1px">Click here</a>
+		  	<a href=https://easyrentofficial.me/register-confirmation/${confirmationCode} style="box-sizing:border-box;text-decoration:none;background-color:#33415c;border:solid 1px #007bff;border-radius:4px;color:#ffffff;font-size:16px;font-weight:bold;margin:0;padding:9px 25px;display:inline-block;letter-spacing:1px">Click here</a>
           </div>
 		</div>
       `,

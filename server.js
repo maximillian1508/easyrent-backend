@@ -15,6 +15,7 @@ const applicationRoute = require("./routes/applicationRoute");
 const contractRoute = require("./routes/contractRoute");
 const transactionRoute = require("./routes/transactionRoute");
 const complaintRoute = require("./routes/complaintRoute");
+const { scheduleCronJobs }  = require("./utils/cronJobs");
 
 const port = process.env.PORT;
 const app = express();
@@ -57,6 +58,7 @@ dbConnection()
 	.then(
 		server.listen(port, () => {
 			console.log(`Server is running on port ${port}`);
+			scheduleCronJobs();
 		}),
 	)
 	.catch((err) => {

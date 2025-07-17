@@ -42,17 +42,27 @@ const getAllApplications = async (req, res) => {
 			.populate({
 				path: "property",
 				select: "name address price depositAmount rooms",
-				populate: {
-					path: "rooms",
-					match: { _id: "$roomId" },
-				},
 			})
 			.sort({ createdAt: -1 });
 
 		const formattedApplications = applications.map((app) => {
-			const room = app.property.rooms.find(
-				(r) => r._id.toString() === app.roomId.toString(),
-			);
+			if (!app.property) {
+				return {
+					...app.toObject(),
+					roomName: null,
+					roomPrice: null,
+					roomDepositAmount: null,
+					propertyDeleted: true,
+				};
+			}
+
+			let room = null;
+			if (app.roomId && app.property.rooms) {
+				room = app.property.rooms.find(
+					(r) => r._id.toString() === app.roomId.toString(),
+				);
+			}
+
 			return {
 				...app.toObject(),
 				roomName: room ? room.name : null,

@@ -16,6 +16,12 @@ const contractRoute = require("./routes/contractRoute");
 const transactionRoute = require("./routes/transactionRoute");
 const complaintRoute = require("./routes/complaintRoute");
 const { scheduleCronJobs }  = require("./utils/cronJobs");
+const { 
+  register, 
+  metricsMiddleware,
+  trackDatabaseQuery,
+  updateDatabaseMetrics
+} = require('./middleware/metrics');
 
 const port = process.env.PORT;
 const app = express();
@@ -31,6 +37,9 @@ app.use(
 	}),
 );
 app.use(helmet());
+
+// Add metrics middleware early in the middleware chain
+app.use(metricsMiddleware);
 
 app.use(
 	session({
@@ -48,6 +57,12 @@ app.use("/contracts", contractRoute);
 app.use("/transactions", transactionRoute);
 app.use("/complaints", complaintRoute);
 
+// Metrics endpoint for Prometheus
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
+});
+
 app.use(errorHandler);
 
 app.get("/", (req, res) => {
@@ -58,6 +73,7 @@ dbConnection()
 	.then(
 		server.listen(port, () => {
 			console.log(`Server is running on port ${port}`);
+			console.log(`Metrics available at http://localhost:${port}/metrics`);
 			scheduleCronJobs();
 		}),
 	)

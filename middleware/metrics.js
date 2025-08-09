@@ -283,6 +283,10 @@ const trackDatabaseQuery = (operation, table, queryFunction) => {
   };
 };
 
+// Track previous CPU usage for percentage calculation
+let lastCpuUsage = process.cpuUsage();
+let lastCpuTime = Date.now();
+
 // System metrics updater
 const updateSystemMetrics = () => {
   // Update memory usage percentage
@@ -291,10 +295,18 @@ const updateSystemMetrics = () => {
   const memoryPercent = (memUsage.rss / totalMemory) * 100;
   memoryUsagePercent.set(memoryPercent);
   
-  // Update CPU usage (simplified)
-  const cpuUsage = process.cpuUsage();
-  const cpuPercent = (cpuUsage.user + cpuUsage.system) / 1000000; // Convert to seconds
-  cpuUsagePercent.set(cpuPercent);
+  // Calculate actual CPU usage percentage
+  const currentCpuUsage = process.cpuUsage(lastCpuUsage);
+  const currentTime = Date.now();
+  const timeDiff = currentTime - lastCpuTime;
+  
+  // Calculate CPU percentage over the time period
+  const cpuPercent = ((currentCpuUsage.user + currentCpuUsage.system) / 1000) / timeDiff * 100;
+  cpuUsagePercent.set(Math.min(cpuPercent, 100)); // Cap at 100%
+  
+  // Update tracking variables
+  lastCpuUsage = process.cpuUsage();
+  lastCpuTime = currentTime;
   
   // Update event loop lag
   const start = process.hrtime.bigint();

@@ -1,4 +1,4 @@
-require("dotenv").config({ path: "./.env.development" });
+require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
@@ -33,6 +33,7 @@ app.use(express.urlencoded({ limit: "50mb", extended: false }));
 app.use(cookieParser());
 app.use(
 	cors({
+		origin: process.env.CORS_ORIGIN || "*",
 		credentials: true,
 	}),
 );
